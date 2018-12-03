@@ -45,6 +45,7 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
+  // Validate lengths of username and password
   const sizedFields = {
     username: {
       min: 1
@@ -55,7 +56,6 @@ router.post('/', (req, res, next) => {
     }
   };
 
-  // Validate lengths of username and password
   const tooSmallField = Object.keys(sizedFields).find(field => 
     'min' in sizedFields[field] && 
     req.body[field].trim().length < sizedFields[field].min);
