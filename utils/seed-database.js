@@ -1,4 +1,5 @@
 'use strict';
+// ---drop/seed db in CL---> node utils/seed-database.js
 
 const mongoose = require('mongoose');
 
@@ -7,6 +8,7 @@ const { MONGODB_URI } = require('../config');
 const Note = require('../models/note');
 const Folder = require('../models/folder');
 const Tag = require('../models/tag');
+const User = require('../models/user');
 
 const { folders, notes, tags } = require('../db/data');
 
@@ -18,6 +20,7 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true })
       Note.deleteMany(),
       Folder.deleteMany(),
       Tag.deleteMany(),
+      User.deleteMany()
     ]);
   })
   .then(() => {
