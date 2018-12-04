@@ -1,13 +1,17 @@
 'use strict';
-
+// Libraries
 const express = require('express');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const passport = require('passport');
 
+// Security
 const localStrategy = require('./passport/local');
 passport.use(localStrategy);
+const jwtStrategy = require('./passport/jwt');
+passport.use(jwtStrategy);
 
+// Config
 const { PORT, MONGODB_URI } = require('./config');
 
 // Require routers

@@ -65,8 +65,7 @@ router.post('/', (req, res, next) => {
     req.body[field].trim().length < sizedFields);
 
   if (tooSmallField || tooLargeField) {
-    const err = new Error(`user name must be at least 1 character long and 
-    password must be at least 8 characters and no more than 71 characters.`);
+    const err = new Error('user name must be at least 1 character long and password must be at least 8 characters and no more than 71 characters.');
     err.status = 422;
     return next(err);
   }
