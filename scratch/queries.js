@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const { MONGODB_URI } = require('../config');
 
 const Note = require('../models/note');
+const Folder = require('../models/folder');
+const Tag = require('../models/tag');
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -11,24 +13,24 @@ mongoose.connect(MONGODB_URI)
     /**
      * Find/Search for notes using Note.find
      */
-    const searchTerm = 'gaga';
-    let filter = {};
+    // const searchTerm = 'gaga';
+    // let filter = {};
 
-    if (searchTerm) {
-      // Using the `$regex` operator (case-sensitive by default)
-      filter.title = { $regex: searchTerm };
+    // if (searchTerm) {
+    // Using the `$regex` operator (case-sensitive by default)
+    // filter.title = { $regex: searchTerm };
 
-      // Using the `$regex` operator with case-insensitive `i` option
-      // filter.title = { $regex: searchTerm, $options: 'i' };
+    // Using the `$regex` operator with case-insensitive `i` option
+    // filter.title = { $regex: searchTerm, $options: 'i' };
 
-      // Alternative using regex `/pattern/i` but not recommended
-      // filter.title = /ways/i;
-    }
+    // Alternative using regex `/pattern/i` but not recommended
+    // filter.title = /ways/i;
+    // }
 
-    return Note.find(filter).sort({ updatedAt: 'desc' })
-      .then(results => {
-        console.log(results);
-      });
+    // return Note.find(filter).sort({ updatedAt: 'desc' })
+    //   .then(results => {
+    //     console.log(results);
+    //   });
 
     /**
      * Find note by id using Note.findById
@@ -79,6 +81,16 @@ mongoose.connect(MONGODB_URI)
     //   .then(result => {
     //     console.log('deleted', result);
     //   });
+    const userId = '000000000000000000000002';
+    
+    return Folder.find({userId})
+      .sort('name')
+      .then(results => {
+        console.log(results);
+      })
+      .catch(err => {
+        console.log(err);
+      });
 
   })
   .then(() => {
