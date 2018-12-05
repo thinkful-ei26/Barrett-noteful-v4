@@ -14,6 +14,7 @@ router.use('/', passport.authenticate('jwt', {session: false, failWithError: tru
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
   const { searchTerm, folderId, tagId } = req.query;
+  const userId = req.user.id;
 
   let filter = {};
 
@@ -28,6 +29,10 @@ router.get('/', (req, res, next) => {
 
   if (tagId) {
     filter.tags = tagId;
+  }
+
+  if (userId) {
+    filter.userId = userId;
   }
 
   Note.find(filter)
@@ -53,6 +58,12 @@ router.get('/:id', (req, res, next) => {
     return next(err);
   }
 
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    const err = new Error('The `userId` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
   Note.findOne({_id: id, userId})
     .populate('tags')
     .then(result => {
@@ -69,9 +80,22 @@ router.get('/:id', (req, res, next) => {
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
-  const { title, content, folderId, tags } = req.body;
+  const { title, content, folderId, tags = [] } = req.body;
+  const userId = req.user.id;
 
   /***** Never trust users - validate input *****/
+  // if (!userId) {
+  //   const err = new Error('Missing `userId` in request body');
+  //   err.status = 400;
+  //   return next(err);
+  // }
+
+  // if (!mongoose.Types.ObjectId.isValid(userId)) {
+  //   const err = new Error('The `userId` is not valid');
+  //   err.status = 400;
+  //   return next(err);
+  // }
+
   if (!title) {
     const err = new Error('Missing `title` in request body');
     err.status = 400;
@@ -93,7 +117,7 @@ router.post('/', (req, res, next) => {
     }
   }
 
-  const newNote = { title, content, folderId, tags };
+  const newNote = { title, content, folderId, tags, userId };
   if (newNote.folderId === '') {
     delete newNote.folderId;
   }
@@ -110,6 +134,7 @@ router.post('/', (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   const toUpdate = {};
   const updateableFields = ['title', 'content', 'folderId', 'tags'];
@@ -153,7 +178,7 @@ router.put('/:id', (req, res, next) => {
     toUpdate.$unset = {folderId : 1};
   }
 
-  Note.findByIdAndUpdate(id, toUpdate, { new: true })
+  Note.findOneAndUpdate({_id: id, userId}, toUpdate, { new: true })
     .then(result => {
       if (result) {
         res.json(result);
@@ -169,6 +194,7 @@ router.put('/:id', (req, res, next) => {
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   /***** Never trust users - validate input *****/
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -177,7 +203,7 @@ router.delete('/:id', (req, res, next) => {
     return next(err);
   }
 
-  Note.findByIdAndRemove(id)
+  Note.findOneAndRemove({_id: id, userId})
     .then(() => {
       res.sendStatus(204);
     })
