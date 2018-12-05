@@ -32,7 +32,7 @@ app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'common', {
 // Create a static webserver
 app.use(express.static('public'));
 
-// Parse request body
+// Parse request body, enables req.body
 app.use(express.json());
 
 // Mount routers
