@@ -8,7 +8,7 @@ const User = require('../models/user');
 
 router.post('/', (req, res, next) => {
     
-  const { fullname, username, password } = req.body;
+  
 
   // --- VALIDATION --- \\
 
@@ -23,12 +23,12 @@ router.post('/', (req, res, next) => {
   }
 
   // Validate that everything is coming in as a String
-  const stringFields = ['username', 'password', 'fuulname'];
+  const stringFields = ['username', 'password', 'fullname'];
   const nonStringField = stringFields.find(
     field => field in req.body && typeof req.body[field] !== 'string');
 
   if (nonStringField) {
-    const err = new Error(`'${nonStringField}' must be strings`);
+    const err = new Error(`'${nonStringField}' must be a string`);
     err.status = 422;
     return next(err);
   }
@@ -40,7 +40,7 @@ router.post('/', (req, res, next) => {
   );
 
   if (nonTrimmedField) {
-    const err = new Error(`'${nonTrimmedField} cannot have white space.'`);
+    const err = new Error(`'${nonTrimmedField}' cannot have white space.`);
     err.status = 422;
     return next(err);
   }
@@ -52,7 +52,7 @@ router.post('/', (req, res, next) => {
     },
     password: {
       min: 8,
-      max: 71
+      max: 72
     }
   };
 
@@ -61,15 +61,26 @@ router.post('/', (req, res, next) => {
     req.body[field].trim().length < sizedFields[field].min);
 
   const tooLargeField = Object.keys(sizedFields).find(field => 
-    'min' in sizedFields[field] &&
-    req.body[field].trim().length < sizedFields);
+    'max' in sizedFields[field] &&
+      req.body[field].trim().length > sizedFields[field].max
+  );
 
-  if (tooSmallField || tooLargeField) {
-    const err = new Error('user name must be at least 1 character long and password must be at least 8 characters and no more than 71 characters.');
+  if (tooSmallField) {
+    const min = sizedFields[tooSmallField].min;
+    const err = new Error(`Field: '${tooSmallField}' must be at least ${min} characters long`);
     err.status = 422;
     return next(err);
   }
 
+  if (tooLargeField) {
+    const max = sizedFields[tooLargeField].max;
+    const err = new Error(`Field: '${tooLargeField}' must be at most ${max} characters long`);
+    err.status = 422;
+    return next(err);
+  }
+
+  let { username, password, fullname } = req.body;
+  fullname = fullname.trim();
   
   return User.hashPassword(password)
     .then(digest => {

@@ -7,13 +7,13 @@ const express = require('express');
 const sinon = require('sinon');
 const jwt = require('jsonwebtoken');
 
-const { JWT_SECRET } = require('../config');
+
 const app = require('../server');
 const Folder = require('../models/folder');
 const Note = require('../models/note');
 const User = require('../models/user');
 const { folders, notes, users } = require('../db/data');
-const { TEST_MONGODB_URI } = require('../config');
+const { TEST_MONGODB_URI, JWT_SECRET, JWT_EXPIRY } = require('../config');
 
 chai.use(chaiHttp);
 const expect = chai.expect;
@@ -25,7 +25,8 @@ describe('Noteful API - Folders', function () {
     return mongoose.connect(TEST_MONGODB_URI, { useNewUrlParser: true })
       .then(() => Promise.all([
         Note.deleteMany(),
-        Folder.deleteMany()
+        Folder.deleteMany(),
+        User.deleteMany()
       ]));
   });
 
@@ -34,14 +35,14 @@ describe('Noteful API - Folders', function () {
 
   beforeEach(function () {
     return Promise.all([
+      User.insertMany(users),
       Folder.insertMany(folders),
       Note.insertMany(notes),
-      User.insertMany(users),
       Folder.createIndexes()
     ])
       .then(([users]) => {
         user = users[0];
-        token = jwt.sign({ user }, JWT_SECRET, { subject: user.username });
+        token = jwt.sign({ user }, JWT_SECRET, { subject: user.username, expiresIn: JWT_EXPIRY });
       });
   });
 
@@ -49,20 +50,23 @@ describe('Noteful API - Folders', function () {
     sandbox.restore();
     return Promise.all([
       Note.deleteMany(), 
-      Folder.deleteMany()
+      Folder.deleteMany(),
+      User.deleteMany()
     ]);
   });
 
   after(function () {
-    return mongoose.disconnect();
+    return mongoose.connection.db.dropDatabase()
+      .then(() => mongoose.disconnect());
   });
   
-  describe('GET /api/folders', function () {
+  describe.only('GET /api/folders', function () {
 
     it('should return a list sorted with the correct number of folders', function () {
       return Promise.all([
-        Folder.find().sort('name'),
+        Folder.find({userId: user.id}).sort('name'),
         chai.request(app).get('/api/folders')
+          .set('Authorization', `Bearer ${token}`)
       ])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -74,8 +78,9 @@ describe('Noteful API - Folders', function () {
 
     it('should return a list sorted by name with the correct fields and values', function () {
       return Promise.all([
-        Folder.find().sort('name'),
+        Folder.find({userId: user.id}).sort('name'),
         chai.request(app).get('/api/folders')
+          .set('Authorization', `Bearer ${token}`)
       ])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -84,7 +89,7 @@ describe('Noteful API - Folders', function () {
           expect(res.body).to.have.length(data.length);
           res.body.forEach(function (item, i) {
             expect(item).to.be.a('object');
-            expect(item).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt');
+            expect(item).to.have.all.keys('id', 'name', 'createdAt', 'updatedAt', 'userId');
             expect(item.id).to.equal(data[i].id);
             expect(item.name).to.equal(data[i].name);
             expect(new Date(item.createdAt)).to.eql(data[i].createdAt);
@@ -94,8 +99,9 @@ describe('Noteful API - Folders', function () {
     });
 
     it('should catch errors and respond properly', function () {
-      sandbox.stub(Folder.schema.options.toObject, 'transform').throws('FakeError');
+      sandbox.stub(Folder.schema.options.toJSON, 'transform').throws('FakeError');
       return chai.request(app).get('/api/folders')
+        .set('Authorization', `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(500);
           expect(res).to.be.json;
